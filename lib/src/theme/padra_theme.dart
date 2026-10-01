@@ -3,10 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 class PadraTheme {
   static const Color green = Color(0xFF35D56F);
-  static const Color dark = Color(0xFF0C1110);
 
   static ThemeData get light => _build(Brightness.light);
-  static ThemeData get darkTheme => _build(Brightness.dark);
   static ThemeData get dark => _build(Brightness.dark);
 
   static ThemeData _build(Brightness brightness) {
