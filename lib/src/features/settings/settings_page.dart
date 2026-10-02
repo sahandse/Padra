@@ -124,7 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     subtitle: const Text('فقط اطلاعات پایه دستگاه بررسی می‌شود؛ فایل‌ها بدون انتخاب تو اسکن نمی‌شوند.'),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.shield_lock_outlined),
+                    leading: const Icon(Icons.privacy_tip_outlined),
                     title: const Text('حریم خصوصی و مجوزها'),
                     subtitle: const Text('Accessibility، Overlay، Privacy Dashboard و دسترسی‌های سیستمی'),
                     trailing: const Icon(Icons.chevron_left_rounded),
@@ -144,8 +144,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 18),
-            Card(
-              child: const Padding(
+            const Card(
+              child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('پادرا به‌صورت آفلاین‌محور طراحی شده است. هیچ فهرست فایل یا برنامه‌ای بدون انتخاب و رضایت کاربر برای سرویس ابری ارسال نمی‌شود.'),
               ),
