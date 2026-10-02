@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/cleaner/cleaner_item.dart';
 import '../../core/cleaner/cleaner_service.dart';
+import '../../core/history/history_service.dart';
 
 class CleanerPage extends StatefulWidget {
   const CleanerPage({super.key});
@@ -13,6 +14,7 @@ class CleanerPage extends StatefulWidget {
 
 class _CleanerPageState extends State<CleanerPage> {
   final CleanerService _service = CleanerService();
+  final HistoryService _history = const HistoryService();
   CleanerScanResult? _result;
   final Set<String> _selected = {};
   bool _scanning = false;
@@ -81,6 +83,17 @@ class _CleanerPageState extends State<CleanerPage> {
     setState(() => _deleting = true);
     final targets = result.items.where((item) => _selected.contains(item.path));
     final freed = await _service.deleteSelected(targets);
+    if (freed > 0) {
+      await _history.add(
+        HistoryEvent(
+          type: 'cleaner',
+          title: 'پاک‌سازی انجام شد',
+          subtitle: '${_formatBytes(freed)} فضا با تأیید کاربر آزاد شد.',
+          createdAt: DateTime.now(),
+          value: freed,
+        ),
+      );
+    }
     if (!mounted) return;
 
     setState(() {

@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/history/history_service.dart';
 import 'antivirus_service.dart';
 import 'scan_result.dart';
 
@@ -13,6 +14,7 @@ class AntivirusPage extends StatefulWidget {
 
 class _AntivirusPageState extends State<AntivirusPage> {
   final AntivirusService _service = AntivirusService();
+  final HistoryService _historyService = const HistoryService();
   bool _scanning = false;
   String? _error;
   ScanResult? _latest;
@@ -48,6 +50,15 @@ class _AntivirusPageState extends State<AntivirusPage> {
         throw StateError('File path unavailable');
       }
       final result = await _service.scanFile(path);
+      await _historyService.add(
+        HistoryEvent(
+          type: 'antivirus',
+          title: 'اسکن امنیتی فایل',
+          subtitle: '${result.name} • ${_verdictLabel(result.verdict)}',
+          createdAt: DateTime.now(),
+          value: result.sizeBytes,
+        ),
+      );
       if (!mounted) return;
       setState(() => _latest = result);
       await _loadHistory();
@@ -237,6 +248,12 @@ _VerdictMeta _verdictMeta(ScanVerdict verdict, ColorScheme colors) {
     ScanVerdict.unknown => _VerdictMeta('نامشخص', Icons.help_outline_rounded, colors.tertiary),
   };
 }
+
+String _verdictLabel(ScanVerdict verdict) => switch (verdict) {
+      ScanVerdict.safe => 'بدون نشانه محلی',
+      ScanVerdict.suspicious => 'مشکوک',
+      ScanVerdict.unknown => 'نامشخص',
+    };
 
 String _formatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';

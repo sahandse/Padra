@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/device/device_scan_service.dart';
 import '../../core/device/device_snapshot.dart';
+import '../../core/history/history_service.dart';
 import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
+import '../history/history_page.dart';
 import '../network/network_page.dart';
 import '../optimization/optimization_page.dart';
 import '../privacy/privacy_page.dart';
@@ -21,6 +23,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final DeviceScanService _scanner = DeviceScanService();
+  final HistoryService _history = const HistoryService();
   DeviceSnapshot? _snapshot;
   bool _scanning = false;
   String? _error;
@@ -33,6 +36,15 @@ class _DashboardPageState extends State<DashboardPage> {
     });
     try {
       final snapshot = await _scanner.scan();
+      await _history.add(
+        HistoryEvent(
+          type: 'device',
+          title: 'بررسی کامل دستگاه',
+          subtitle: '${snapshot.deviceLabel} • باتری ${snapshot.batteryLevel}٪ • حافظه ${snapshot.usedStoragePercent == null ? 'نامشخص' : '${snapshot.usedStoragePercent!.round()}٪'}',
+          createdAt: DateTime.now(),
+          value: snapshot.usedStoragePercent,
+        ),
+      );
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
     } catch (_) {
@@ -70,6 +82,12 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  void _openHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const HistoryPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -87,6 +105,13 @@ class _DashboardPageState extends State<DashboardPage> {
               Text('امنیت و سلامت گوشی', style: TextStyle(fontSize: 12)),
             ],
           ),
+          actions: [
+            IconButton(
+              tooltip: 'تاریخچه و گزارش‌ها',
+              onPressed: _openHistory,
+              icon: const Icon(Icons.history_rounded),
+            ),
+          ],
         ),
         body: SafeArea(
           child: RefreshIndicator(
@@ -111,6 +136,13 @@ class _DashboardPageState extends State<DashboardPage> {
                   title: 'حریم خصوصی و مجوزها',
                   subtitle: 'مجوزهای حساس، Accessibility، Overlay و Privacy Dashboard',
                   onTap: _openPrivacy,
+                ),
+                const SizedBox(height: 10),
+                _FeatureCard(
+                  icon: Icons.insights_rounded,
+                  title: 'تاریخچه و گزارش‌ها',
+                  subtitle: 'اسکن‌ها، رویدادهای امنیتی و میزان فضای آزادشده',
+                  onTap: _openHistory,
                 ),
                 if (snapshot != null) ...[
                   const SizedBox(height: 18),
