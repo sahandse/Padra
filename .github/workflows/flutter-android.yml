@@ -1,20 +1,27 @@
-name: Flutter Android CI
+name: Flutter Android Release
 
 on:
   push:
     branches: [main, feature/**]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -22,11 +29,87 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Flutter version
-        run: flutter --version
-
-      - name: Generate Android platform scaffold
+      - name: Generate Android scaffold
         run: flutter create --platforms=android --org ir.padra --project-name padra .
+
+      - name: Configure market package and manifest
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          build = Path('android/app/build.gradle.kts')
+          text = build.read_text()
+          text = text.replace('ir.padra.padra', 'ir.padra.app')
+          text = 'import java.util.Properties\nimport java.io.FileInputStream\n\n' + text
+          marker = 'android {\n'
+          prefix = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
+          text = text.replace(marker, prefix + marker, 1)
+          old = '''    buildTypes {\n        release {\n            // TODO: Add your own signing config for the release build.\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
+          new = '''    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties["keyAlias"] as String\n            keyPassword = keystoreProperties["keyPassword"] as String\n            storeFile = file(keystoreProperties["storeFile"] as String)\n            storePassword = keystoreProperties["storePassword"] as String\n        }\n    }\n\n    buildTypes {\n        release {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n        }\n    }'''
+          if old not in text:
+              raise SystemExit('Expected Flutter release buildTypes block not found')
+          build.write_text(text.replace(old, new))
+
+          main_activity = next(Path('android/app/src/main/kotlin').rglob('MainActivity.kt'))
+          activity_text = main_activity.read_text().replace('package ir.padra.padra', 'package ir.padra.app')
+          main_activity.write_text(activity_text)
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          manifest_text = manifest.read_text()
+          manifest_text = manifest_text.replace('android:label="padra"', 'android:label="پادرا"')
+          if 'android.permission.INTERNET' not in manifest_text:
+              manifest_text = manifest_text.replace(
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
+              )
+          manifest.write_text(manifest_text)
+          PY
+
+      - name: Prepare release signing
+        id: signing
+        shell: bash
+        env:
+          PADRA_KEYSTORE_BASE64: ${{ secrets.PADRA_KEYSTORE_BASE64 }}
+          PADRA_STORE_PASSWORD: ${{ secrets.PADRA_STORE_PASSWORD }}
+          PADRA_KEY_PASSWORD: ${{ secrets.PADRA_KEY_PASSWORD }}
+          PADRA_KEY_ALIAS: ${{ secrets.PADRA_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          mkdir -p android/app signing-output
+          if [ -n "${PADRA_KEYSTORE_BASE64:-}" ]; then
+            echo "$PADRA_KEYSTORE_BASE64" | base64 --decode > android/app/padra-release.jks
+            STORE_PASSWORD="$PADRA_STORE_PASSWORD"
+            KEY_PASSWORD="$PADRA_KEY_PASSWORD"
+            KEY_ALIAS="$PADRA_KEY_ALIAS"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          else
+            STORE_PASSWORD="$(openssl rand -hex 16)"
+            KEY_PASSWORD="$(openssl rand -hex 16)"
+            KEY_ALIAS="padra"
+            keytool -genkeypair -v \
+              -keystore android/app/padra-release.jks \
+              -storepass "$STORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Padra, OU=Mobile, O=Padra, C=IR"
+            cp android/app/padra-release.jks signing-output/padra-release.jks
+            cat > signing-output/SIGNING-KEY-INFO.txt <<EOF
+          IMPORTANT: Keep this file and padra-release.jks permanently. Future market updates must use the same signing key.
+          STORE_PASSWORD=$STORE_PASSWORD
+          KEY_PASSWORD=$KEY_PASSWORD
+          KEY_ALIAS=$KEY_ALIAS
+          EOF
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=padra-release.jks
+          EOF
 
       - name: Install dependencies
         run: flutter pub get
@@ -34,5 +117,36 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+
+      - name: Prepare market files
+        shell: bash
+        run: |
+          mkdir -p market-output
+          cp build/app/outputs/flutter-apk/app-release.apk market-output/padra-1.0.0.apk
+          cp build/app/outputs/bundle/release/app-release.aab market-output/padra-1.0.0.aab
+          sha256sum market-output/* > market-output/SHA256SUMS.txt
+
+      - name: Upload market release
+        uses: actions/upload-artifact@v4
+        with:
+          name: padra-market-1.0.0
+          path: market-output/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload first signing key
+        if: steps.signing.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: padra-signing-key-FIRST-RELEASE
+          path: signing-output/
+          if-no-files-found: error
+          retention-days: 30
