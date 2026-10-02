@@ -2,6 +2,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:disk_space_plus/disk_space_plus.dart';
 
+import '../notifications/notification_service.dart';
 import 'device_snapshot.dart';
 
 class DeviceScanService {
@@ -32,7 +33,7 @@ class DeviceScanService {
       // than inventing a value or failing the whole scan.
     }
 
-    return DeviceSnapshot(
+    final snapshot = DeviceSnapshot(
       manufacturer: android.manufacturer,
       model: android.model,
       androidVersion: android.version.release,
@@ -44,6 +45,14 @@ class DeviceScanService {
       totalStorageMb: totalStorageMb,
       freeStorageMb: freeStorageMb,
     );
+
+    try {
+      await NotificationService.instance.evaluate(snapshot);
+    } catch (_) {
+      // Notifications are optional and must never make the device scan fail.
+    }
+
+    return snapshot;
   }
 
   String _batteryStateLabel(BatteryState state) {
