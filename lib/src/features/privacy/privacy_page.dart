@@ -44,7 +44,7 @@ class PrivacyPage extends StatelessWidget {
       _PrivacyItem(
         title: 'نصب از منابع ناشناس',
         subtitle: 'برنامه‌هایی که امکان نصب APK خارج از فروشگاه دارند را بررسی کن.',
-        icon: Icons.apk_document_outlined,
+        icon: Icons.android_rounded,
         onTap: () => _open('android.settings.MANAGE_UNKNOWN_APP_SOURCES'),
       ),
       _PrivacyItem(
@@ -72,7 +72,7 @@ class PrivacyPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.shield_lock_outlined, size: 38, color: colors.primary),
+                  Icon(Icons.privacy_tip_outlined, size: 38, color: colors.primary),
                   const SizedBox(height: 12),
                   const Text(
                     'مرکز حریم خصوصی پادرا',
