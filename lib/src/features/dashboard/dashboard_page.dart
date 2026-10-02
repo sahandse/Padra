@@ -6,6 +6,7 @@ import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
+import '../optimization/optimization_page.dart';
 import '../security/security_page.dart';
 import '../storage/storage_page.dart';
 
@@ -54,6 +55,12 @@ class _DashboardPageState extends State<DashboardPage> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
+  void _openOptimization() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => OptimizationPage(snapshot: _snapshot)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -80,6 +87,46 @@ class _DashboardPageState extends State<DashboardPage> {
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
               children: [
                 _ScanHero(snapshot: snapshot, scanning: _scanning, error: _error, onScan: _scan),
+                const SizedBox(height: 12),
+                Card(
+                  child: InkWell(
+                    onTap: _openOptimization,
+                    borderRadius: BorderRadius.circular(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: colors.primaryContainer,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(Icons.bolt_rounded, color: colors.onPrimaryContainer),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('مرکز بهینه‌سازی', style: TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  snapshot == null
+                                      ? 'همه بررسی‌ها را یک‌جا ببین'
+                                      : 'نتیجه‌های واقعی دستگاه و اقدامات پیشنهادی',
+                                  style: TextStyle(color: colors.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_back_ios_new_rounded, size: 15),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 if (snapshot != null) ...[
                   const SizedBox(height: 18),
                   _DeviceCard(snapshot: snapshot),
@@ -99,16 +146,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final enabled = item.title == 'آنتی‌ویروس' ||
-                        item.title == 'پاک‌سازی' ||
-                        item.title == 'باتری' ||
-                        item.title == 'حافظه' ||
-                        item.title == 'امنیت' ||
-                        item.title == 'برنامه‌ها';
                     return Card(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
-                        onTap: enabled ? () => _openTool(item.title) : null,
+                        onTap: () => _openTool(item.title),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -119,12 +160,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Icon(item.icon, color: colors.primary),
-                                  if (enabled)
-                                    Icon(
-                                      Icons.arrow_back_ios_new_rounded,
-                                      size: 14,
-                                      color: colors.onSurfaceVariant,
-                                    ),
+                                  Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: colors.onSurfaceVariant),
                                 ],
                               ),
                               Column(
