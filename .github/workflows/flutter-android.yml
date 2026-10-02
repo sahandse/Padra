@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -30,7 +30,9 @@ jobs:
           cache: true
 
       - name: Generate Android scaffold
-        run: flutter create --platforms=android --org ir.padra --project-name padra .
+        run: |
+          flutter create --platforms=android --org ir.padra --project-name padra .
+          rm -f test/widget_test.dart
 
       - name: Configure market package and manifest
         shell: bash
@@ -45,7 +47,9 @@ jobs:
           marker = 'android {\n'
           prefix = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
           text = text.replace(marker, prefix + marker, 1)
-          old = '''    buildTypes {\n        release {\n            // TODO: Add your own signing config for the release build.\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
+          old = '''    buildTypes {\n        release {\n            // TODO: Add your own unique Application ID (https://developer.android.com/studio/build/application-id.html).\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
+          if old not in text:
+              old = '''    buildTypes {\n        release {\n            // TODO: Add your own signing config for the release build.\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
           new = '''    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties["keyAlias"] as String\n            keyPassword = keystoreProperties["keyPassword"] as String\n            storeFile = file(keystoreProperties["storeFile"] as String)\n            storePassword = keystoreProperties["storePassword"] as String\n        }\n    }\n\n    buildTypes {\n        release {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n        }\n    }'''
           if old not in text:
               raise SystemExit('Expected Flutter release buildTypes block not found')
@@ -64,6 +68,9 @@ jobs:
                   '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
               )
           manifest.write_text(manifest_text)
+
+          dashboard = Path('lib/src/features/dashboard/dashboard_page.dart')
+          dashboard.write_text(dashboard.read_text().replace('Icons.shield_lock_outlined', 'Icons.privacy_tip_outlined'))
           PY
 
       - name: Prepare release signing
@@ -85,7 +92,7 @@ jobs:
             echo "generated=false" >> "$GITHUB_OUTPUT"
           else
             STORE_PASSWORD="$(openssl rand -hex 16)"
-            KEY_PASSWORD="$(openssl rand -hex 16)"
+            KEY_PASSWORD="$STORE_PASSWORD"
             KEY_ALIAS="padra"
             keytool -genkeypair -v \
               -keystore android/app/padra-release.jks \
