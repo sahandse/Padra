@@ -1,7 +1,7 @@
 name: padra
 description: Padra - Android security, health and optimization assistant.
 publish_to: "none"
-version: 0.15.0+15
+version: 1.0.0+15
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
