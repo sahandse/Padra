@@ -1,0 +1,29 @@
+name: padra
+description: Padra - Android security, health and optimization assistant.
+publish_to: "none"
+version: 0.5.0+5
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  device_info_plus: ^13.2.0
+  battery_plus: ^7.1.1
+  disk_space_plus: ^0.2.6
+  installed_apps: ^2.2.0
+  file_picker: ^10.3.3
+  crypto: ^3.0.6
+  shared_preferences: ^2.5.3
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
