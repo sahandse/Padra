@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/device/device_scan_service.dart';
 import '../../core/device/device_snapshot.dart';
+import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
 import '../security/security_page.dart';
 
@@ -38,6 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   void _openTool(String title) {
     final Widget? page = switch (title) {
+      'آنتی‌ویروس' => const AntivirusPage(),
       'امنیت' => const SecurityPage(),
       'برنامه‌ها' => const AppsPage(),
       _ => null,
@@ -71,12 +73,7 @@ class _DashboardPageState extends State<DashboardPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
               children: [
-                _ScanHero(
-                  snapshot: snapshot,
-                  scanning: _scanning,
-                  error: _error,
-                  onScan: _scan,
-                ),
+                _ScanHero(snapshot: snapshot, scanning: _scanning, error: _error, onScan: _scan),
                 if (snapshot != null) ...[
                   const SizedBox(height: 18),
                   _DeviceCard(snapshot: snapshot),
@@ -96,7 +93,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final enabled = item.title == 'امنیت' || item.title == 'برنامه‌ها';
+                    final enabled = item.title == 'آنتی‌ویروس' || item.title == 'امنیت' || item.title == 'برنامه‌ها';
                     return Card(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
@@ -140,7 +137,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: Icon(Icons.privacy_tip_outlined, color: colors.primary),
                     title: const Text('اسکن شفاف و بدون نتیجه ساختگی', style: TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('پادرا فقط اطلاعاتی را گزارش می‌کند که واقعاً از اندروید دریافت شده باشند.'),
+                    subtitle: const Text('پادرا فقط اطلاعاتی را گزارش می‌کند که واقعاً از اندروید یا فایل انتخاب‌شده دریافت شده باشند.'),
                   ),
                 ),
               ],
@@ -154,7 +151,7 @@ class _DashboardPageState extends State<DashboardPage> {
   List<_HealthItem> _healthItems(DeviceSnapshot? snapshot) {
     if (snapshot == null) {
       return const [
-        _HealthItem('آنتی‌ویروس', 'بررسی نشده', Icons.shield_outlined),
+        _HealthItem('آنتی‌ویروس', 'برای اسکن فایل لمس کن', Icons.shield_outlined),
         _HealthItem('پاک‌سازی', 'بررسی نشده', Icons.cleaning_services_outlined),
         _HealthItem('باتری', 'بررسی نشده', Icons.battery_charging_full_rounded),
         _HealthItem('حافظه', 'بررسی نشده', Icons.storage_rounded),
@@ -166,7 +163,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ? 'نامشخص'
         : '${snapshot.usedStoragePercent!.round()}٪ استفاده شده';
     return [
-      const _HealthItem('آنتی‌ویروس', 'موتور اسکن APK مرحله بعد', Icons.shield_outlined),
+      const _HealthItem('آنتی‌ویروس', 'اسکن فایل و APK + SHA-256', Icons.shield_outlined),
       const _HealthItem('پاک‌سازی', 'تحلیل فایل‌ها مرحله بعد', Icons.cleaning_services_outlined),
       _HealthItem('باتری', '${snapshot.batteryLevel}٪ • ${snapshot.batteryState}', Icons.battery_charging_full_rounded),
       _HealthItem('حافظه', storage, Icons.storage_rounded),
