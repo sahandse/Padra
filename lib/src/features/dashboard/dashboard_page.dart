@@ -6,6 +6,7 @@ import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
+import '../network/network_page.dart';
 import '../optimization/optimization_page.dart';
 import '../privacy/privacy_page.dart';
 import '../security/security_page.dart';
@@ -50,6 +51,7 @@ class _DashboardPageState extends State<DashboardPage> {
       'حافظه' => const StoragePage(),
       'امنیت' => const SecurityPage(),
       'برنامه‌ها' => const AppsPage(),
+      'شبکه' => const NetworkPage(),
       _ => null,
     };
     if (page == null) return;
@@ -192,6 +194,7 @@ class _DashboardPageState extends State<DashboardPage> {
         _HealthItem('حافظه', 'برای تحلیل لمس کن', Icons.storage_rounded),
         _HealthItem('امنیت', 'برای بررسی لمس کن', Icons.security_rounded),
         _HealthItem('برنامه‌ها', 'برای تحلیل لمس کن', Icons.apps_rounded),
+        _HealthItem('شبکه', 'سلامت اینترنت و اتصال', Icons.language_rounded),
       ];
     }
     final storage = snapshot.usedStoragePercent == null
@@ -204,6 +207,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _HealthItem('حافظه', '$storage • تحلیل فایل‌ها', Icons.storage_rounded),
       _HealthItem('امنیت', snapshot.securityPatch == null ? 'Patch نامشخص • ورود برای جزئیات' : 'Patch ${snapshot.securityPatch}', Icons.security_rounded),
       const _HealthItem('برنامه‌ها', 'فهرست و تحلیل واقعی', Icons.apps_rounded),
+      const _HealthItem('شبکه', 'نوع اتصال، DNS و دسترسی واقعی', Icons.language_rounded),
     ];
   }
 }
