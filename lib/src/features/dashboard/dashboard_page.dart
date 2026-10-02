@@ -7,6 +7,7 @@ import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
 import '../security/security_page.dart';
+import '../storage/storage_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -44,6 +45,7 @@ class _DashboardPageState extends State<DashboardPage> {
       'آنتی‌ویروس' => const AntivirusPage(),
       'پاک‌سازی' => const CleanerPage(),
       'باتری' => const BatteryPage(),
+      'حافظه' => const StoragePage(),
       'امنیت' => const SecurityPage(),
       'برنامه‌ها' => const AppsPage(),
       _ => null,
@@ -100,6 +102,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     final enabled = item.title == 'آنتی‌ویروس' ||
                         item.title == 'پاک‌سازی' ||
                         item.title == 'باتری' ||
+                        item.title == 'حافظه' ||
                         item.title == 'امنیت' ||
                         item.title == 'برنامه‌ها';
                     return Card(
@@ -167,7 +170,7 @@ class _DashboardPageState extends State<DashboardPage> {
         _HealthItem('آنتی‌ویروس', 'برای اسکن فایل لمس کن', Icons.shield_outlined),
         _HealthItem('پاک‌سازی', 'فایل‌های بزرگ و تکراری', Icons.cleaning_services_outlined),
         _HealthItem('باتری', 'برای جزئیات لمس کن', Icons.battery_charging_full_rounded),
-        _HealthItem('حافظه', 'بررسی نشده', Icons.storage_rounded),
+        _HealthItem('حافظه', 'برای تحلیل لمس کن', Icons.storage_rounded),
         _HealthItem('امنیت', 'برای بررسی لمس کن', Icons.security_rounded),
         _HealthItem('برنامه‌ها', 'برای تحلیل لمس کن', Icons.apps_rounded),
       ];
@@ -179,7 +182,7 @@ class _DashboardPageState extends State<DashboardPage> {
       const _HealthItem('آنتی‌ویروس', 'اسکن فایل و APK + SHA-256', Icons.shield_outlined),
       const _HealthItem('پاک‌سازی', 'تحلیل و حذف با تأیید', Icons.cleaning_services_outlined),
       _HealthItem('باتری', '${snapshot.batteryLevel}٪ • ${snapshot.batteryState}', Icons.battery_charging_full_rounded),
-      _HealthItem('حافظه', storage, Icons.storage_rounded),
+      _HealthItem('حافظه', '$storage • تحلیل فایل‌ها', Icons.storage_rounded),
       _HealthItem('امنیت', snapshot.securityPatch == null ? 'Patch نامشخص • ورود برای جزئیات' : 'Patch ${snapshot.securityPatch}', Icons.security_rounded),
       const _HealthItem('برنامه‌ها', 'فهرست و تحلیل واقعی', Icons.apps_rounded),
     ];
