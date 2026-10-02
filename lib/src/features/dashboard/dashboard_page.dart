@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/device/device_scan_service.dart';
 import '../../core/device/device_snapshot.dart';
+import '../apps/apps_page.dart';
+import '../security/security_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -12,7 +14,6 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final DeviceScanService _scanner = DeviceScanService();
-
   DeviceSnapshot? _snapshot;
   bool _scanning = false;
   String? _error;
@@ -23,19 +24,26 @@ class _DashboardPageState extends State<DashboardPage> {
       _scanning = true;
       _error = null;
     });
-
     try {
       final snapshot = await _scanner.scan();
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _error = 'خواندن اطلاعات دستگاه کامل نشد. دوباره تلاش کن.';
-      });
+      setState(() => _error = 'خواندن اطلاعات دستگاه کامل نشد. دوباره تلاش کن.');
     } finally {
       if (mounted) setState(() => _scanning = false);
     }
+  }
+
+  void _openTool(String title) {
+    final Widget? page = switch (title) {
+      'امنیت' => const SecurityPage(),
+      'برنامه‌ها' => const AppsPage(),
+      _ => null,
+    };
+    if (page == null) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
   @override
@@ -55,13 +63,6 @@ class _DashboardPageState extends State<DashboardPage> {
               Text('امنیت و سلامت گوشی', style: TextStyle(fontSize: 12)),
             ],
           ),
-          actions: [
-            IconButton(
-              onPressed: null,
-              tooltip: 'تنظیمات',
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ],
         ),
         body: SafeArea(
           child: RefreshIndicator(
@@ -81,10 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   _DeviceCard(snapshot: snapshot),
                 ],
                 const SizedBox(height: 24),
-                const Text(
-                  'وضعیت گوشی',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
+                const Text('وضعیت گوشی', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
@@ -94,38 +92,43 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.35,
+                    childAspectRatio: 1.28,
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
+                    final enabled = item.title == 'امنیت' || item.title == 'برنامه‌ها';
                     return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(item.icon, color: colors.primary),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.title,
-                                  style: const TextStyle(fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  item.status,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.onSurfaceVariant,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: enabled ? () => _openTool(item.title) : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Icon(item.icon, color: colors.primary),
+                                  if (enabled) Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: colors.onSurfaceVariant),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    item.status,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -134,16 +137,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 20),
                 Card(
                   child: ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Icon(Icons.info_outline_rounded, color: colors.primary),
-                    title: const Text(
-                      'داده واقعی، بدون عدد نمایشی',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: const Text(
-                      'اگر اندروید دسترسی به اطلاعاتی را محدود کند، پادرا همان مورد را «نامشخص» نمایش می‌دهد و مقدار حدسی جایگزین نمی‌کند.',
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Icon(Icons.privacy_tip_outlined, color: colors.primary),
+                    title: const Text('اسکن شفاف و بدون نتیجه ساختگی', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('پادرا فقط اطلاعاتی را گزارش می‌کند که واقعاً از اندروید دریافت شده باشند.'),
                   ),
                 ),
               ],
@@ -161,44 +158,26 @@ class _DashboardPageState extends State<DashboardPage> {
         _HealthItem('پاک‌سازی', 'بررسی نشده', Icons.cleaning_services_outlined),
         _HealthItem('باتری', 'بررسی نشده', Icons.battery_charging_full_rounded),
         _HealthItem('حافظه', 'بررسی نشده', Icons.storage_rounded),
-        _HealthItem('امنیت', 'بررسی نشده', Icons.security_rounded),
-        _HealthItem('برنامه‌ها', 'بررسی نشده', Icons.apps_rounded),
+        _HealthItem('امنیت', 'برای بررسی لمس کن', Icons.security_rounded),
+        _HealthItem('برنامه‌ها', 'برای تحلیل لمس کن', Icons.apps_rounded),
       ];
     }
-
     final storage = snapshot.usedStoragePercent == null
         ? 'نامشخص'
         : '${snapshot.usedStoragePercent!.round()}٪ استفاده شده';
-
     return [
-      const _HealthItem('آنتی‌ویروس', 'اسکن فایل‌ها در مرحله بعد', Icons.shield_outlined),
-      const _HealthItem('پاک‌سازی', 'تحلیل فایل‌ها در مرحله بعد', Icons.cleaning_services_outlined),
-      _HealthItem(
-        'باتری',
-        '${snapshot.batteryLevel}٪ • ${snapshot.batteryState}',
-        Icons.battery_charging_full_rounded,
-      ),
+      const _HealthItem('آنتی‌ویروس', 'موتور اسکن APK مرحله بعد', Icons.shield_outlined),
+      const _HealthItem('پاک‌سازی', 'تحلیل فایل‌ها مرحله بعد', Icons.cleaning_services_outlined),
+      _HealthItem('باتری', '${snapshot.batteryLevel}٪ • ${snapshot.batteryState}', Icons.battery_charging_full_rounded),
       _HealthItem('حافظه', storage, Icons.storage_rounded),
-      _HealthItem(
-        'امنیت',
-        snapshot.securityPatch == null
-            ? 'Security Patch نامشخص'
-            : 'Patch: ${snapshot.securityPatch}',
-        Icons.security_rounded,
-      ),
-      const _HealthItem('برنامه‌ها', 'بررسی مجوزها در مرحله بعد', Icons.apps_rounded),
+      _HealthItem('امنیت', snapshot.securityPatch == null ? 'Patch نامشخص • ورود برای جزئیات' : 'Patch ${snapshot.securityPatch}', Icons.security_rounded),
+      const _HealthItem('برنامه‌ها', 'فهرست و تحلیل واقعی', Icons.apps_rounded),
     ];
   }
 }
 
 class _ScanHero extends StatelessWidget {
-  const _ScanHero({
-    required this.snapshot,
-    required this.scanning,
-    required this.error,
-    required this.onScan,
-  });
-
+  const _ScanHero({required this.snapshot, required this.scanning, required this.error, required this.onScan});
   final DeviceSnapshot? snapshot;
   final bool scanning;
   final String? error;
@@ -208,7 +187,6 @@ class _ScanHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final hasResult = snapshot != null;
-
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -221,41 +199,21 @@ class _ScanHero extends StatelessWidget {
           Container(
             width: 112,
             height: 112,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: colors.primary, width: 7),
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: colors.primary, width: 7)),
             child: scanning
-                ? Padding(
-                    padding: const EdgeInsets.all(30),
-                    child: CircularProgressIndicator(color: colors.primary),
-                  )
-                : Icon(
-                    hasResult ? Icons.verified_user_rounded : Icons.shield_outlined,
-                    size: 48,
-                    color: colors.primary,
-                  ),
+                ? Padding(padding: const EdgeInsets.all(30), child: CircularProgressIndicator(color: colors.primary))
+                : Icon(hasResult ? Icons.verified_user_rounded : Icons.shield_outlined, size: 48, color: colors.primary),
           ),
           const SizedBox(height: 18),
           Text(
-            scanning
-                ? 'در حال بررسی گوشی…'
-                : hasResult
-                    ? 'اطلاعات دستگاه بررسی شد'
-                    : 'هنوز گوشی بررسی نشده',
+            scanning ? 'در حال بررسی گوشی…' : hasResult ? 'اطلاعات دستگاه بررسی شد' : 'هنوز گوشی بررسی نشده',
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 7),
           Text(
-            error ??
-                (hasResult
-                    ? 'اطلاعات واقعی باتری، حافظه و نسخه امنیتی اندروید دریافت شد.'
-                    : 'برای مشاهده وضعیت واقعی دستگاه، اسکن را شروع کن.'),
+            error ?? (hasResult ? 'اطلاعات واقعی باتری، حافظه و نسخه امنیتی اندروید دریافت شد.' : 'برای مشاهده وضعیت واقعی دستگاه، اسکن را شروع کن.'),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: error == null ? colors.onSurfaceVariant : colors.error,
-              height: 1.7,
-            ),
+            style: TextStyle(color: error == null ? colors.onSurfaceVariant : colors.error, height: 1.7),
           ),
           const SizedBox(height: 18),
           SizedBox(
@@ -263,10 +221,7 @@ class _ScanHero extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: scanning ? null : onScan,
               icon: Icon(hasResult ? Icons.refresh_rounded : Icons.radar_rounded),
-              label: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                child: Text(hasResult ? 'بررسی دوباره' : 'شروع بررسی کامل'),
-              ),
+              label: Padding(padding: const EdgeInsets.symmetric(vertical: 13), child: Text(hasResult ? 'بررسی دوباره' : 'شروع بررسی کامل')),
             ),
           ),
         ],
@@ -277,46 +232,29 @@ class _ScanHero extends StatelessWidget {
 
 class _DeviceCard extends StatelessWidget {
   const _DeviceCard({required this.snapshot});
-
   final DeviceSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final totalStorage = snapshot.totalStorageMb;
-    final freeStorage = snapshot.freeStorageMb;
-
+    final total = snapshot.totalStorageMb;
+    final free = snapshot.freeStorageMb;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.smartphone_rounded, color: colors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    snapshot.deviceLabel,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
+            Row(children: [
+              Icon(Icons.smartphone_rounded, color: colors.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(snapshot.deviceLabel, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+            ]),
             const SizedBox(height: 14),
             _InfoRow('اندروید', '${snapshot.androidVersion} (SDK ${snapshot.sdkInt})'),
-            _InfoRow(
-              'وصله امنیتی',
-              snapshot.securityPatch ?? 'نامشخص',
-            ),
+            _InfoRow('وصله امنیتی', snapshot.securityPatch ?? 'نامشخص'),
             _InfoRow('دستگاه واقعی', snapshot.isPhysicalDevice ? 'بله' : 'خیر'),
-            _InfoRow(
-              'حافظه',
-              totalStorage == null || freeStorage == null
-                  ? 'نامشخص'
-                  : '${_gb(freeStorage)} GB آزاد از ${_gb(totalStorage)} GB',
-            ),
+            _InfoRow('حافظه', total == null || free == null ? 'نامشخص' : '${_gb(free)} GB آزاد از ${_gb(total)} GB'),
           ],
         ),
       ),
@@ -328,7 +266,6 @@ class _DeviceCard extends StatelessWidget {
 
 class _InfoRow extends StatelessWidget {
   const _InfoRow(this.label, this.value);
-
   final String label;
   final String value;
 
@@ -336,27 +273,16 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
+      child: Row(children: [
+        SizedBox(width: 92, child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
+        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+      ]),
     );
   }
 }
 
 class _HealthItem {
   const _HealthItem(this.title, this.status, this.icon);
-
   final String title;
   final String status;
   final IconData icon;
