@@ -7,6 +7,7 @@ import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
 import '../optimization/optimization_page.dart';
+import '../privacy/privacy_page.dart';
 import '../security/security_page.dart';
 import '../storage/storage_page.dart';
 
@@ -61,6 +62,12 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  void _openPrivacy() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PrivacyPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -88,44 +95,20 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 _ScanHero(snapshot: snapshot, scanning: _scanning, error: _error, onScan: _scan),
                 const SizedBox(height: 12),
-                Card(
-                  child: InkWell(
-                    onTap: _openOptimization,
-                    borderRadius: BorderRadius.circular(24),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(Icons.bolt_rounded, color: colors.onPrimaryContainer),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('مرکز بهینه‌سازی', style: TextStyle(fontWeight: FontWeight.w800)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  snapshot == null
-                                      ? 'همه بررسی‌ها را یک‌جا ببین'
-                                      : 'نتیجه‌های واقعی دستگاه و اقدامات پیشنهادی',
-                                  style: TextStyle(color: colors.onSurfaceVariant),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.arrow_back_ios_new_rounded, size: 15),
-                        ],
-                      ),
-                    ),
-                  ),
+                _FeatureCard(
+                  icon: Icons.bolt_rounded,
+                  title: 'مرکز بهینه‌سازی',
+                  subtitle: snapshot == null
+                      ? 'همه بررسی‌ها را یک‌جا ببین'
+                      : 'نتیجه‌های واقعی دستگاه و اقدامات پیشنهادی',
+                  onTap: _openOptimization,
+                ),
+                const SizedBox(height: 10),
+                _FeatureCard(
+                  icon: Icons.shield_lock_outlined,
+                  title: 'حریم خصوصی و مجوزها',
+                  subtitle: 'مجوزهای حساس، Accessibility، Overlay و Privacy Dashboard',
+                  onTap: _openPrivacy,
                 ),
                 if (snapshot != null) ...[
                   const SizedBox(height: 18),
@@ -222,6 +205,59 @@ class _DashboardPageState extends State<DashboardPage> {
       _HealthItem('امنیت', snapshot.securityPatch == null ? 'Patch نامشخص • ورود برای جزئیات' : 'Patch ${snapshot.securityPatch}', Icons.security_rounded),
       const _HealthItem('برنامه‌ها', 'فهرست و تحلیل واقعی', Icons.apps_rounded),
     ];
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: colors.onPrimaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(subtitle, style: TextStyle(color: colors.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_back_ios_new_rounded, size: 15),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
