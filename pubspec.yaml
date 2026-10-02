@@ -1,7 +1,7 @@
 name: padra
 description: Padra - Android security, health and optimization assistant.
 publish_to: "none"
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -14,6 +14,7 @@ dependencies:
   device_info_plus: ^13.2.0
   battery_plus: ^7.1.1
   disk_space_plus: ^0.2.6
+  installed_apps: ^2.2.0
 
 dev_dependencies:
   flutter_test:
