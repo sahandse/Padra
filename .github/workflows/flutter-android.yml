@@ -1,10 +1,11 @@
-name: Flutter Android CI
+name: Flutter Android Release
 
 on:
   push:
-    branches: [main, feature/**]
+    branches: [main, feature/**, release/**]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,8 +26,30 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
-      - name: Generate Android platform scaffold
+      - name: Generate Android scaffold
         run: flutter create --platforms=android --org ir.padra --project-name padra .
+
+      - name: Set market package and Android permissions
+        shell: bash
+        run: |
+          set -e
+          find android/app -type f \( -name 'build.gradle' -o -name 'build.gradle.kts' \) -print0 | xargs -0 sed -i 's/ir\.padra\.padra/ir.padra.app/g'
+          find android/app/src/main -type f -name '*.kt' -print0 | xargs -0 sed -i 's/package ir\.padra\.padra/package ir.padra.app/g'
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text()
+          perms = [
+              '<uses-permission android:name="android.permission.INTERNET" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+          ]
+          marker = '<application'
+          for perm in perms:
+              if perm not in text:
+                  text = text.replace(marker, f'    {perm}\n    {marker}', 1)
+          text = text.replace('android:label="padra"', 'android:label="پادرا"')
+          p.write_text(text)
+          PY
 
       - name: Install dependencies
         run: flutter pub get
@@ -34,5 +57,25 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: padra-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: padra-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
