@@ -4,6 +4,7 @@ import '../../core/device/device_scan_service.dart';
 import '../../core/device/device_snapshot.dart';
 import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
+import '../cleaner/cleaner_page.dart';
 import '../security/security_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -40,6 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void _openTool(String title) {
     final Widget? page = switch (title) {
       'آنتی‌ویروس' => const AntivirusPage(),
+      'پاک‌سازی' => const CleanerPage(),
       'امنیت' => const SecurityPage(),
       'برنامه‌ها' => const AppsPage(),
       _ => null,
@@ -93,7 +95,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final enabled = item.title == 'آنتی‌ویروس' || item.title == 'امنیت' || item.title == 'برنامه‌ها';
+                    final enabled = item.title == 'آنتی‌ویروس' ||
+                        item.title == 'پاک‌سازی' ||
+                        item.title == 'امنیت' ||
+                        item.title == 'برنامه‌ها';
                     return Card(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
@@ -108,7 +113,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Icon(item.icon, color: colors.primary),
-                                  if (enabled) Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: colors.onSurfaceVariant),
+                                  if (enabled)
+                                    Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      size: 14,
+                                      color: colors.onSurfaceVariant,
+                                    ),
                                 ],
                               ),
                               Column(
@@ -152,7 +162,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (snapshot == null) {
       return const [
         _HealthItem('آنتی‌ویروس', 'برای اسکن فایل لمس کن', Icons.shield_outlined),
-        _HealthItem('پاک‌سازی', 'بررسی نشده', Icons.cleaning_services_outlined),
+        _HealthItem('پاک‌سازی', 'فایل‌های بزرگ و تکراری', Icons.cleaning_services_outlined),
         _HealthItem('باتری', 'بررسی نشده', Icons.battery_charging_full_rounded),
         _HealthItem('حافظه', 'بررسی نشده', Icons.storage_rounded),
         _HealthItem('امنیت', 'برای بررسی لمس کن', Icons.security_rounded),
@@ -164,7 +174,7 @@ class _DashboardPageState extends State<DashboardPage> {
         : '${snapshot.usedStoragePercent!.round()}٪ استفاده شده';
     return [
       const _HealthItem('آنتی‌ویروس', 'اسکن فایل و APK + SHA-256', Icons.shield_outlined),
-      const _HealthItem('پاک‌سازی', 'تحلیل فایل‌ها مرحله بعد', Icons.cleaning_services_outlined),
+      const _HealthItem('پاک‌سازی', 'تحلیل و حذف با تأیید', Icons.cleaning_services_outlined),
       _HealthItem('باتری', '${snapshot.batteryLevel}٪ • ${snapshot.batteryState}', Icons.battery_charging_full_rounded),
       _HealthItem('حافظه', storage, Icons.storage_rounded),
       _HealthItem('امنیت', snapshot.securityPatch == null ? 'Patch نامشخص • ورود برای جزئیات' : 'Patch ${snapshot.securityPatch}', Icons.security_rounded),
