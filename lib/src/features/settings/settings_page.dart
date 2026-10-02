@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/settings/app_settings_service.dart';
+import '../notifications/notification_center_page.dart';
 import '../privacy/privacy_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -95,6 +96,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: const Text('تیره'),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            const _SectionTitle('محافظت و اعلان‌ها'),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: const Text('مرکز اعلان و محافظت'),
+                subtitle: const Text('هشدارهای امنیتی، حافظه و باتری با کنترل کامل کاربر'),
+                trailing: const Icon(Icons.chevron_left_rounded),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
+                ),
               ),
             ),
             const SizedBox(height: 18),
