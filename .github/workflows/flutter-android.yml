@@ -47,13 +47,27 @@ jobs:
           marker = 'android {\n'
           prefix = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
           text = text.replace(marker, prefix + marker, 1)
+
+          compile_old = '''    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }'''
+          compile_new = '''    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }'''
+          if compile_old not in text:
+              raise SystemExit('Expected Flutter compileOptions block not found')
+          text = text.replace(compile_old, compile_new, 1)
+
           old = '''    buildTypes {\n        release {\n            // TODO: Add your own unique Application ID (https://developer.android.com/studio/build/application-id.html).\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
           if old not in text:
               old = '''    buildTypes {\n        release {\n            // TODO: Add your own signing config for the release build.\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig = signingConfigs.getByName("debug")\n        }\n    }'''
           new = '''    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties["keyAlias"] as String\n            keyPassword = keystoreProperties["keyPassword"] as String\n            storeFile = file(keystoreProperties["storeFile"] as String)\n            storePassword = keystoreProperties["storePassword"] as String\n        }\n    }\n\n    buildTypes {\n        release {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n        }\n    }'''
           if old not in text:
               raise SystemExit('Expected Flutter release buildTypes block not found')
-          build.write_text(text.replace(old, new))
+          text = text.replace(old, new, 1)
+
+          flutter_block = '''flutter {\n    source = "../.."\n}'''
+          desugar_block = '''dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n\nflutter {\n    source = "../.."\n}'''
+          if flutter_block not in text:
+              raise SystemExit('Expected Flutter source block not found')
+          text = text.replace(flutter_block, desugar_block, 1)
+          build.write_text(text)
 
           main_activity = next(Path('android/app/src/main/kotlin').rglob('MainActivity.kt'))
           activity_text = main_activity.read_text().replace('package ir.padra.padra', 'package ir.padra.app')
