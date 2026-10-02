@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/background/background_health_service.dart';
 import '../../core/notifications/notification_preferences.dart';
 import '../../core/notifications/notification_service.dart';
 
@@ -14,6 +15,8 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
   NotificationPreferences _prefs = NotificationPreferences.defaults();
   bool _loading = true;
   bool _busy = false;
+  bool _backgroundEnabled = false;
+  DateTime? _lastBackgroundRun;
 
   @override
   void initState() {
@@ -23,9 +26,13 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
 
   Future<void> _load() async {
     final prefs = await NotificationPreferences.load();
+    final backgroundEnabled = await BackgroundHealthService.isEnabled();
+    final lastRun = await BackgroundHealthService.lastRun();
     if (!mounted) return;
     setState(() {
       _prefs = prefs;
+      _backgroundEnabled = backgroundEnabled;
+      _lastBackgroundRun = lastRun;
       _loading = false;
     });
   }
@@ -51,6 +58,30 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
       }
     }
     await _save(_prefs.copyWith(enabled: value));
+  }
+
+  Future<void> _toggleBackground(bool value) async {
+    setState(() => _busy = true);
+    await BackgroundHealthService.setEnabled(value);
+    if (!mounted) return;
+    setState(() {
+      _backgroundEnabled = value;
+      _busy = false;
+    });
+  }
+
+  Future<void> _runBackgroundNow() async {
+    setState(() => _busy = true);
+    final ok = await BackgroundHealthService.runNow();
+    final lastRun = await BackgroundHealthService.lastRun();
+    if (!mounted) return;
+    setState(() {
+      _lastBackgroundRun = lastRun;
+      _busy = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'بررسی پس‌زمینه با موفقیت اجرا شد.' : 'بررسی کامل نشد. دوباره تلاش کن.')),
+    );
   }
 
   Future<void> _test() async {
@@ -84,7 +115,7 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                           const Text('هشدارهای واقعی پادرا', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
                           const SizedBox(height: 8),
                           Text(
-                            'پادرا فقط بر اساس بررسی‌هایی که واقعاً انجام شده‌اند اعلان می‌دهد. فعال‌بودن این بخش به معنی مانیتورینگ دائمی پس‌زمینه نیست.',
+                            'پادرا فقط بر اساس داده‌هایی که واقعاً از Android دریافت شده‌اند هشدار می‌دهد. بررسی دوره‌ای نیز سبک و غیر دقیق از نظر زمان اجراست.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: colors.onSurfaceVariant, height: 1.7),
                           ),
@@ -100,6 +131,33 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                       secondary: const Icon(Icons.notifications_rounded),
                       title: const Text('فعال‌کردن اعلان‌های پادرا', style: TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: const Text('در Android 13 و بالاتر فقط بعد از تأیید خودت فعال می‌شود.'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          value: _backgroundEnabled,
+                          onChanged: _busy ? null : _toggleBackground,
+                          secondary: const Icon(Icons.schedule_rounded),
+                          title: const Text('بررسی دوره‌ای پس‌زمینه', style: TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: const Text('تقریباً هر ۱۲ ساعت؛ Android ممکن است زمان اجرا را برای صرفه‌جویی باتری عقب بیندازد.'),
+                        ),
+                        if (_lastBackgroundRun != null)
+                          ListTile(
+                            leading: const Icon(Icons.history_toggle_off_rounded),
+                            title: const Text('آخرین بررسی پس‌زمینه'),
+                            subtitle: Text(_formatDate(_lastBackgroundRun!)),
+                          ),
+                        ListTile(
+                          leading: const Icon(Icons.play_circle_outline_rounded),
+                          title: const Text('اجرای آزمایشی همین حالا'),
+                          subtitle: const Text('یک بررسی سبک واقعی اجرا می‌شود و نتیجه در History ثبت خواهد شد.'),
+                          enabled: !_busy,
+                          onTap: _busy ? null : _runBackgroundNow,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -129,7 +187,7 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                   ),
                   _ToggleTile(
                     title: 'یادآوری بررسی دوره‌ای',
-                    subtitle: 'تنظیم ذخیره می‌شود؛ زمان‌بندی پس‌زمینه در مرحله بعد فعال خواهد شد.',
+                    subtitle: 'وقتی روشن باشد، بررسی پس‌زمینه می‌تواند نتیجه مهم را به‌صورت اعلان نشان دهد.',
                     icon: Icons.event_repeat_rounded,
                     value: _prefs.scanReminders,
                     enabled: _prefs.enabled && !_busy,
@@ -150,15 +208,21 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                   const SizedBox(height: 14),
                   Card(
                     child: ListTile(
-                      leading: Icon(Icons.privacy_tip_outlined, color: colors.primary),
-                      title: const Text('کنترل دست کاربر است', style: TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: const Text('پادرا برای جلب توجه هشدار ساختگی، تعداد ویروس جعلی یا اعلان ترسناک نمایش نمی‌دهد.'),
+                      leading: Icon(Icons.battery_saver_outlined, color: colors.primary),
+                      title: const Text('باتری‌دوست و غیر دقیق', style: TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: const Text('پادرا از WorkManager استفاده می‌کند؛ زمان اجرا را Android مدیریت می‌کند و برنامه سرویس دائمی در پس‌زمینه نگه نمی‌دارد.'),
                     ),
                   ),
                 ],
               ),
       ),
     );
+  }
+
+  static String _formatDate(DateTime value) {
+    final local = value.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${local.year}/${two(local.month)}/${two(local.day)} • ${two(local.hour)}:${two(local.minute)}';
   }
 }
 
