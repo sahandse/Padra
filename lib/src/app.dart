@@ -44,6 +44,17 @@ class _PadraAppState extends State<PadraApp> {
     setState(() => _themeMode = mode);
   }
 
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(
+          themeMode: _themeMode,
+          onThemeChanged: _changeTheme,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final onboardingDone = _onboardingDone;
@@ -57,14 +68,23 @@ class _PadraAppState extends State<PadraApp> {
       home: onboardingDone == null
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : onboardingDone
-              ? DashboardPage(
-                  onOpenSettings: (context) => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SettingsPage(
-                        themeMode: _themeMode,
-                        onThemeChanged: _changeTheme,
+              ? Builder(
+                  builder: (context) => Stack(
+                    children: [
+                      const DashboardPage(),
+                      Positioned(
+                        top: MediaQuery.paddingOf(context).top + 4,
+                        left: 8,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: IconButton(
+                            tooltip: 'تنظیمات',
+                            onPressed: () => _openSettings(context),
+                            icon: const Icon(Icons.settings_outlined),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 )
               : OnboardingPage(onDone: _finishOnboarding),
