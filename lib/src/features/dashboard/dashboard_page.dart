@@ -4,6 +4,7 @@ import '../../core/device/device_scan_service.dart';
 import '../../core/device/device_snapshot.dart';
 import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
+import '../battery/battery_page.dart';
 import '../cleaner/cleaner_page.dart';
 import '../security/security_page.dart';
 
@@ -42,6 +43,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final Widget? page = switch (title) {
       'آنتی‌ویروس' => const AntivirusPage(),
       'پاک‌سازی' => const CleanerPage(),
+      'باتری' => const BatteryPage(),
       'امنیت' => const SecurityPage(),
       'برنامه‌ها' => const AppsPage(),
       _ => null,
@@ -97,6 +99,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     final item = items[index];
                     final enabled = item.title == 'آنتی‌ویروس' ||
                         item.title == 'پاک‌سازی' ||
+                        item.title == 'باتری' ||
                         item.title == 'امنیت' ||
                         item.title == 'برنامه‌ها';
                     return Card(
@@ -163,7 +166,7 @@ class _DashboardPageState extends State<DashboardPage> {
       return const [
         _HealthItem('آنتی‌ویروس', 'برای اسکن فایل لمس کن', Icons.shield_outlined),
         _HealthItem('پاک‌سازی', 'فایل‌های بزرگ و تکراری', Icons.cleaning_services_outlined),
-        _HealthItem('باتری', 'بررسی نشده', Icons.battery_charging_full_rounded),
+        _HealthItem('باتری', 'برای جزئیات لمس کن', Icons.battery_charging_full_rounded),
         _HealthItem('حافظه', 'بررسی نشده', Icons.storage_rounded),
         _HealthItem('امنیت', 'برای بررسی لمس کن', Icons.security_rounded),
         _HealthItem('برنامه‌ها', 'برای تحلیل لمس کن', Icons.apps_rounded),
