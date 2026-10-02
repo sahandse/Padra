@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/device/device_snapshot.dart';
+import '../../core/health/health_score_service.dart';
 import '../antivirus/antivirus_page.dart';
 import '../apps/apps_page.dart';
 import '../battery/battery_page.dart';
@@ -16,8 +17,7 @@ class OptimizationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final checks = _checks(snapshot);
-    final known = checks.where((e) => e.state != _CheckState.unknown).length;
-    final attention = checks.where((e) => e.state == _CheckState.attention).length;
+    final score = const HealthScoreService().evaluate(snapshot);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -26,16 +26,30 @@ class OptimizationPage extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
           children: [
-            _SummaryCard(
-              knownChecks: known,
-              attentionCount: attention,
-              hasSnapshot: snapshot != null,
-            ),
+            _HealthScoreCard(result: score),
             const SizedBox(height: 18),
-            const Text(
-              'وضعیت‌ها',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
+            if (score.recommendations.isNotEmpty) ...[
+              const Text('پیشنهادهای هوشمند', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              ...score.recommendations.map(
+                (text) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.lightbulb_outline_rounded),
+                    title: Text(text),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const Text('جزئیات امتیاز', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            ...score.items.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ScoreItemCard(item: item),
+                )),
+            const SizedBox(height: 10),
+            const Text('وضعیت‌ها', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             ...checks.map((check) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -55,14 +69,11 @@ class OptimizationPage extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                    Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
-                        'پادرا RAM Booster یا Task Killer ساختگی اجرا نمی‌کند. اندروید مدیریت حافظه و پردازش‌ها را انجام می‌دهد و بستن اجباری برنامه‌ها می‌تواند مصرف باتری را بیشتر کند.',
+                        'Health Score پادرا فقط از داده‌های قابل‌اندازه‌گیری استفاده می‌کند. بخش‌های بررسی‌نشده در امتیاز نهایی حساب نمی‌شوند. پادرا RAM Booster یا Task Killer ساختگی اجرا نمی‌کند.',
                         style: TextStyle(height: 1.65),
                       ),
                     ),
@@ -191,6 +202,110 @@ class OptimizationPage extends StatelessWidget {
   }
 }
 
+class _HealthScoreCard extends StatelessWidget {
+  const _HealthScoreCard({required this.result});
+
+  final HealthScoreResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final hasKnownScore = result.maxScore > 0;
+    final percent = result.percent;
+    final title = !hasKnownScore
+        ? 'هنوز امتیاز محاسبه نشده'
+        : percent >= 85
+            ? 'وضعیت فعلی خوب است'
+            : percent >= 65
+                ? 'چند مورد قابل بهبود است'
+                : 'چند مورد نیاز به توجه دارد';
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: .45)),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 126,
+            height: 126,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: hasKnownScore ? percent / 100 : 0,
+                  strokeWidth: 10,
+                  backgroundColor: colors.surfaceContainerHighest,
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(hasKnownScore ? '$percent' : '—', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
+                    Text('از ۱۰۰', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            !hasKnownScore
+                ? 'ابتدا بررسی کامل دستگاه را اجرا کن.'
+                : '${result.score} از ${result.maxScore} امتیاز قابل‌اندازه‌گیری ثبت شده${result.unknownCount > 0 ? ' • ${result.unknownCount} بخش هنوز بررسی نشده' : ''}.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.onSurfaceVariant, height: 1.6),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreItemCard extends StatelessWidget {
+  const _ScoreItemCard({required this.item});
+
+  final HealthScoreItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final (label, icon, color) = switch (item.state) {
+      HealthScoreState.good => ('مناسب', Icons.check_circle_outline_rounded, colors.primary),
+      HealthScoreState.attention => ('نیاز به توجه', Icons.warning_amber_rounded, colors.tertiary),
+      HealthScoreState.unknown => ('نیاز به بررسی', Icons.help_outline_rounded, colors.onSurfaceVariant),
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800))),
+                Text(
+                  item.state == HealthScoreState.unknown ? '— / ${item.maxScore}' : '${item.score} / ${item.maxScore}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(item.detail, style: TextStyle(color: colors.onSurfaceVariant, height: 1.5)),
+            const SizedBox(height: 8),
+            Row(children: [Icon(icon, size: 16, color: color), const SizedBox(width: 5), Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700))]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 enum _CheckState { ok, attention, unknown }
 
 class _OptimizationCheck {
@@ -207,52 +322,6 @@ class _OptimizationCheck {
   final IconData icon;
   final _CheckState state;
   final Widget? destination;
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.knownChecks,
-    required this.attentionCount,
-    required this.hasSnapshot,
-  });
-
-  final int knownChecks;
-  final int attentionCount;
-  final bool hasSnapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final headline = !hasSnapshot
-        ? 'نیاز به اسکن دستگاه'
-        : attentionCount == 0
-            ? 'در بررسی‌های فعلی مورد فوری دیده نشد'
-            : '$attentionCount مورد نیاز به توجه دارد';
-
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: .45)),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.bolt_rounded, size: 48, color: colors.primary),
-          const SizedBox(height: 12),
-          Text(headline, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
-          const SizedBox(height: 6),
-          Text(
-            hasSnapshot
-                ? '$knownChecks بررسی بر اساس داده‌های واقعی دستگاه انجام شده است.'
-                : 'برای تحلیل باتری، حافظه و امنیت ابتدا از صفحه اصلی «بررسی کامل» را اجرا کن.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: colors.onSurfaceVariant, height: 1.6),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _CheckCard extends StatelessWidget {
